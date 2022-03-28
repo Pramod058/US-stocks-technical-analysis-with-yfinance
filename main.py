@@ -1,16 +1,6 @@
 import yfinance as yf
 from time import sleep
 
-def conditions(last_close, SMA20, SMA200, last_change):
-    if last_close < SMA20 and last_close < SMA200:
-         print("Trend =  Bearish")
-
-    elif last_close > SMA20 and last_close > SMA200:
-        print("Trend =Bullish")
-
-    else:
-        print('Trend = Neutral')
-    
 def SMA20s(closing_prices):
     return closing_prices.tail(20).mean(axis= 'index')
 
@@ -18,29 +8,74 @@ def SMA20s(closing_prices):
 def SMA200s(closing_prices):
     return closing_prices.tail(200).mean(axis = 'index')
 
+def change():
+    Percentage_change = ClosingValues.pct_change()
+    last_change = Percentage_change.iloc[-1]
+    return last_change
 
-tickers = ['AAPL','BABA']
+def buy():
+    above_fat = {ticker: changed}
+    buy_signal.update(above_fat)
+    buy_signal.update()
+
+def sell():
+    below_fat = {ticker: changed}
+    buy_signal.update(below_fat)
+
+def neutral():
+    between_fat = {ticker: changed}
+    neutral_signal.update(between_fat)
+
+tickers = ['PTON','AAPL','BABA','PDD','NKE','SBUX','FSLY','FB','MSFT','MU','TWTR','QCOM','UAL','JD']
+
 while True:
-    for ticker in tickers:
-        Prices = yf.download(ticker, period='2d', interval='2m')
 
-        ClosingValues = Prices['Close']
+        buy_signal={}
+        sell_signal={}
+        neutral_signal={}
 
-        Percentage_change = ClosingValues.pct_change()
+        for ticker in tickers:
 
-        last_close = ClosingValues.iloc[-1]
 
-        last_change=Percentage_change.last('2m').iloc[-1]
+            #last Close Value
+            Prices = yf.download(ticker, period='2d', interval='2m')
+            ClosingValues = Prices['Close']
+            last_close = ClosingValues.iloc[-1]
 
-        SMA20, SMA200 = SMA20s(ClosingValues), SMA200s(ClosingValues)
 
-        print(ticker,"Price=",last_close)
+            # Percentage Change
+            changed = change()
 
-        print("Percentage Change =", last_change)
 
-        print('SMA20=',SMA20,'SMA200=',SMA200)
 
-        conditions(last_close, SMA20, SMA200, last_change)
-       
+            # SMA20/SMA200
+            SMA20, SMA200 = SMA20s(ClosingValues), SMA200s(ClosingValues)
 
-    sleep(120)
+            buy_condition=[
+                last_close>SMA20,
+                last_close>SMA200,
+                   ]
+            sell_condition = [
+                last_close < SMA200,
+                last_close < SMA20
+            ]
+            if all(buy_condition):
+                buy()
+            elif all(sell_condition):
+                sell()
+            else:
+                neutral()
+
+
+
+        # Sorting Process
+        sorted_buy = dict(sorted(buy_signal.items(), key=lambda x: x[0], reverse=True))
+        sorted_sell=dict(sorted(sell_signal.items(),key=lambda x: x[0]))
+
+        # Finalizing Values
+        print("Above Fat4:",sorted_buy,"\n\n\n")
+        print("Below Fat4:",sorted_sell,"\n\n\n")
+        print("Between SMA20 and SMA200:",neutral_signal,"\n\n\n")
+
+           
+        sleep(120)
